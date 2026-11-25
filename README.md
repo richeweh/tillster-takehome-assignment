@@ -8,8 +8,8 @@ This is a payment-operations log for self-serve kiosks. Tenants run stores. Stor
 
 Tenant owns stores. Store owns kiosks. A session lives on one kiosk.
 
-- **Tenant 1**++ has 29 stores, so the map only shows two.
-- **Tenant 2**++ has both of its stores.
+- **Tenant 1** has 29 stores, so the map only shows two.
+- **Tenant 2** has both of its stores.
 
 ```mermaid
 flowchart TD
