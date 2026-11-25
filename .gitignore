@@ -16,3 +16,4 @@ outputs/
 *.pptx
 .env
 .env.*
+.streamlit/secrets.toml

@@ -24,7 +24,9 @@ The file is about 1.8 million rows. The first notebook run reads the whole file.
 | `sql/discovery_kiosk_stores.sql` | Kiosk list, store revenue, and a check that no kiosk sits in two stores. |
 | `sql/discovery_events.sql` | One row per event. About 1.8 million rows. The notebook does not run this file. |
 | `notebooks/discovery_session_identity.ipynb` | Discovery tables, then the charts. |
-| `requirements.txt` | Python deps for the notebook. |
+| `sql/metric_layer.sql` | Metric tables the question app is allowed to query. |
+| `app.py` | Question box. One question, one SELECT, the SQL on the page. |
+| `requirements.txt` | Python deps for the notebook and the question app. |
 
 `events` has nine columns: `tenant`, `session_id`, `event_date`, `event_index`, `event_name`, `store_id_unified`, `kiosk_id_up`, `item_id_masked`, `item_revenue`. The event names used in the charts are `view_item_list`, `select_item`, `add_to_cart`, and `purchase`.
 
@@ -114,6 +116,31 @@ These live in the notebook helpers, not in a separate metric file.
 - Purchase rate for a store is sessions with a purchase, divided by all sessions at that store.
 - Items per buying session are purchase rows in sessions that purchased.
 - Revenue in the daily charts is `SUM(item_revenue)` for that tenant and date. Revenue per buying session in the basket section uses `item_revenue` on `purchase` rows only. Tenant 1 and Tenant 2 stay on separate axes because the price units differ.
+
+## Question app
+
+`app.py` is a question box over the metric tables. It builds those tables from `sql/metric_layer.sql` after `sql/init_ddl.sql`, then drops the raw `events` view. A question becomes one `SELECT` against those tables. The page shows the SQL under the result.
+
+The definitions match the notebook. A session is one visit. A funnel step is presence of that event name. Item revenue stays inside one tenant. Questions about churn, repeat visits, or lifetime value are refused, because the file has no guest id.
+
+From the repo root, with the virtualenv active:
+
+```powershell
+copy .streamlit\secrets.toml.example .streamlit\secrets.toml
+streamlit run app.py
+```
+
+Put your Deepseek key in `.streamlit/secrets.toml`. That file is gitignored. The first launch reads `data/dataset.csv.gz` and builds the tables. Later questions reuse them until the app process restarts.
+
+To host it on Streamlit Community Cloud:
+
+1. Push this repo to GitHub, including `data/dataset.csv.gz`. Do not push the secrets file.
+2. Sign in at [share.streamlit.io](https://share.streamlit.io) and create an app from that repo.
+3. Set the main file to `app.py`.
+4. In the app settings, open Secrets and paste the same TOML as the example file, with the real key.
+5. Deploy. The first boot reads the event file, so give it a minute.
+
+Anyone with the app link can ask questions. The answers come from this dataset.
 
 ## Local notes
 
