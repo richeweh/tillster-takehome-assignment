@@ -1,8 +1,8 @@
 """Question box over the kiosk metric tables.
 
-Reads data/dataset.csv.gz through DuckDB, builds the same session and funnel
-definitions as the notebook, and asks Deepseek for one SELECT. The key is
-DEEPSEEK_API_KEY in the environment or in .streamlit/secrets.toml.
+Reads data/raw_data/dataset.csv.gz through DuckDB, builds the same session and
+funnel definitions as the notebook, and asks Deepseek for one SELECT. The key
+is DEEPSEEK_API_KEY in the environment or in .streamlit/secrets.toml.
 """
 
 from __future__ import annotations
@@ -29,6 +29,8 @@ TABLES = (
     "step_loss",
     "store_metrics",
     "basket_by_tenant",
+    "conversion_by_tenant",
+    "session_segments",
     "metric_notes",
 )
 
@@ -94,13 +96,13 @@ def run_script(con: duckdb.DuckDBPyConnection, path: Path) -> None:
 
 @st.cache_resource(show_spinner="Reading the event file and building the metric tables.")
 def get_db() -> duckdb.DuckDBPyConnection:
-    data = ROOT / "data" / "dataset.csv.gz"
+    data = ROOT / "data" / "raw_data" / "dataset.csv.gz"
     if not data.is_file():
-        raise FileNotFoundError("data/dataset.csv.gz is not in the repo.")
+        raise FileNotFoundError("data/raw_data/dataset.csv.gz is not in the repo.")
     os.chdir(ROOT)
     con = duckdb.connect(database=":memory:")
-    run_script(con, ROOT / "sql" / "init_ddl.sql")
-    run_script(con, ROOT / "sql" / "metric_layer.sql")
+    run_script(con, ROOT / "data" / "sql" / "init_ddl.sql")
+    run_script(con, ROOT / "data" / "sql" / "metric_layer.sql")
     present = {
         row[0]
         for row in con.execute(

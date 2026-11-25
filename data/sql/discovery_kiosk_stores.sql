@@ -10,8 +10,8 @@ SELECT
     tenant,
     store_id_unified,
     COUNT(DISTINCT kiosk_id_up) AS kiosk_id_up_count,
-    ROUND(AVG(item_revenue), 2) AS avg_item_revenue,
-   ROUND(SUM(item_revenue), 2) AS total_item_revenue
+    ROUND(AVG(item_revenue), 1) AS avg_item_revenue,
+   ROUND(SUM(item_revenue), 1) AS total_item_revenue
 FROM events
 GROUP BY tenant, store_id_unified
 ORDER BY tenant, total_item_revenue DESC, kiosk_id_up_count DESC,store_id_unified,  avg_item_revenue DESC;

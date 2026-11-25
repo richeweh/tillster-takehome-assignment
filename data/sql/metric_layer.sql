@@ -188,7 +188,8 @@ WITH buyers AS (
     SELECT
         tenant,
         COUNT(*) FILTER (WHERE purchased) AS buying_sessions,
-        SUM(purchase_rows) * 1.0 / NULLIF(COUNT(*) FILTER (WHERE purchased), 0) AS items_per_buying_session
+        SUM(purchase_rows) * 1.0 / NULLIF(COUNT(*) FILTER (WHERE purchased), 0) AS items_per_buying_session,
+        SUM(purchase_revenue) * 1.0 / NULLIF(COUNT(*) FILTER (WHERE purchased), 0) AS revenue_per_buying_session
     FROM session_flags
     GROUP BY tenant
 ),
@@ -204,11 +205,40 @@ SELECT
     b.tenant,
     b.buying_sessions,
     b.items_per_buying_session,
+    b.revenue_per_buying_session,
     p.median_purchase_item_revenue,
-    'median price on a purchase row, unit differs by tenant' AS revenue_unit
+    'median price and revenue-per-session use a tenant-specific unit' AS revenue_unit
 FROM buyers b
 JOIN prices p USING (tenant)
 ORDER BY b.tenant;
+
+-- Primary conversion metric. Denominator is written once: all sessions for that tenant
+-- (or all sessions at that store / kiosk). Numerator is sessions with at least one purchase.
+CREATE TABLE conversion_by_tenant AS
+SELECT
+    tenant,
+    sessions,
+    sessions_purchased AS purchased_sessions,
+    purchase_rate AS purchase_conversion,
+    'purchased_sessions / all sessions for that tenant' AS denominator
+FROM tenant_summary
+ORDER BY tenant;
+
+CREATE TABLE session_segments AS
+SELECT
+    tenant,
+    COUNT(*) AS sessions,
+    COUNT(*) FILTER (WHERE purchased) AS purchased,
+    COUNT(*) FILTER (WHERE purchased) * 1.0 / NULLIF(COUNT(*), 0) AS purchased_share,
+    COUNT(*) FILTER (WHERE carted AND NOT purchased) AS cart_no_buy,
+    COUNT(*) FILTER (WHERE carted AND NOT purchased) * 1.0 / NULLIF(COUNT(*), 0) AS cart_no_buy_share,
+    COUNT(*) FILTER (WHERE NOT carted AND NOT purchased) AS browse,
+    COUNT(*) FILTER (WHERE NOT carted AND NOT purchased) * 1.0 / NULLIF(COUNT(*), 0) AS browse_share,
+    COUNT(*) FILTER (WHERE carted) AS reached_cart,
+    COUNT(*) FILTER (WHERE carted AND NOT purchased) * 1.0 / NULLIF(COUNT(*) FILTER (WHERE carted), 0) AS cart_abandon_rate
+FROM session_flags
+GROUP BY tenant
+ORDER BY tenant;
 
 CREATE TABLE metric_notes (
     topic VARCHAR,
@@ -221,6 +251,10 @@ INSERT INTO metric_notes VALUES
     'One session_id inside one tenant. A session does not cross a tenant, a store, or a kiosk. There is no guest id, so a session is one visit, not a customer who comes back.'
 ),
 (
+    'purchase_conversion',
+    'Primary conversion. Numerator: sessions with at least one purchase. Denominator: all sessions for that tenant (or all sessions at that store / kiosk). Same formula for both tenants. companion rates live in funnel_by_tenant and step_loss.'
+),
+(
     'funnel_step',
     'A session reaches a step when that event_name appears at least once. The steps, in order, are view_item_list, select_item, add_to_cart, and purchase. share_of_sessions is sessions that reached the step divided by all sessions for that tenant. The check is presence, not event_index order.'
 ),
@@ -230,7 +264,15 @@ INSERT INTO metric_notes VALUES
 ),
 (
     'purchase_rate',
-    'Sessions with a purchase divided by all sessions. For a store, the denominator is sessions at that store. More kiosks are not a higher rate.'
+    'Alias of purchase_conversion. Sessions with a purchase divided by all sessions. For a store, the denominator is sessions at that store. More kiosks are not a higher rate.'
+),
+(
+    'in_session_abandonment',
+    'Substitute for customer churn. cart_abandon_rate is sessions that carted and did not purchase, divided by sessions that carted. Refuse guest churn, retention, RFM, and LTV.'
+),
+(
+    'session_segments',
+    'browse = never carted and never purchased. cart_no_buy = carted and never purchased. purchased = at least one purchase. Act on store_id and kiosk_id, not on a person. RFM and LTV need a guest id.'
 ),
 (
     'item_revenue',
@@ -238,11 +280,11 @@ INSERT INTO metric_notes VALUES
 ),
 (
     'basket',
-    'items_per_buying_session is purchase rows in sessions that purchased, divided by those sessions.'
+    'items_per_buying_session is purchase rows in sessions that purchased, divided by those sessions. revenue_per_buying_session is purchase_revenue in those sessions, divided by those sessions.'
 ),
 (
     'out_of_scope',
-    'Churn, repeat visits, retention of guests, subscriptions, and lifetime value are not in this file. Refuse those questions.'
+    'Customer churn, repeat visits, guest retention, subscriptions, RFM, and lifetime value are not in this file. Refuse those questions.'
 );
 
 DROP VIEW events;

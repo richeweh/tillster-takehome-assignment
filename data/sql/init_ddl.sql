@@ -9,4 +9,4 @@ SELECT
     kiosk_id_up::VARCHAR AS kiosk_id_up,
     item_id_masked::VARCHAR AS item_id_masked,
     item_revenue::DOUBLE AS item_revenue
-FROM read_csv_auto('data/dataset.csv.gz', header = true);
+FROM read_csv_auto('data/raw_data/dataset.csv.gz', header = true);
