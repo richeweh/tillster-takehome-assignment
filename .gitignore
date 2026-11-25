@@ -1,0 +1,18 @@
+# Local env
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+
+# Raw CSV is ~162 MB (over GitHub's 100 MB limit). Ship the gzip instead.
+data/dataset.csv
+
+# Optional local artifacts — not required to replicate the notebook
+notes/
+presentation/
+outputs/
+*.pptx
+.env
+.env.*
