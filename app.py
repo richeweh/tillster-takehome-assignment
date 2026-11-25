@@ -449,7 +449,7 @@ def main() -> None:
 
     if prompt and st.session_state.messages[-1]["role"] == "user":
         with st.chat_message("assistant"):
-            with st.spinner("Writing the query."):
+            with st.spinner("Running the query."):
                 try:
                     reply = run_question(prompt)
                 except Exception as exc:

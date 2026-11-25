@@ -1,7 +1,21 @@
 -- Metric tables for the question app.
 -- Definitions match the notebook: a session is one session_id inside one tenant,
 -- a funnel step is presence of that event_name, and item_revenue stays inside one tenant.
--- The raw events view is dropped at the end. The app allows SELECT against these tables only.
+-- Run data/sql/init_ddl.sql first. These drops let that pair be run again
+-- in the same session. The raw events view is dropped at the end.
+-- The app allows SELECT against these tables only.
+
+DROP TABLE IF EXISTS conversion_by_tenant;
+DROP TABLE IF EXISTS session_segments;
+DROP TABLE IF EXISTS basket_by_tenant;
+DROP TABLE IF EXISTS store_metrics;
+DROP TABLE IF EXISTS step_loss;
+DROP TABLE IF EXISTS funnel_by_tenant;
+DROP TABLE IF EXISTS daily_metrics;
+DROP TABLE IF EXISTS tenant_summary;
+DROP TABLE IF EXISTS file_inventory;
+DROP TABLE IF EXISTS metric_notes;
+DROP TABLE IF EXISTS session_flags;
 
 CREATE TABLE session_flags AS
 SELECT
